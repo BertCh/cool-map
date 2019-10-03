@@ -1,25 +1,177 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useReducer, createContext, useEffect, Fragment } from "react";
+import WebMercatorViewport from "viewport-mercator-project";
+import { FlyToInterpolator } from "react-map-gl";
+import { easeCubic } from "d3-ease";
+import bbox from "@turf/bbox";
+import along from "@turf/along";
+import length from "@turf/length";
+import DeckMap from "./DeckMap";
+import LocationButton from "./LocationButton";
+import { getRandomInt } from "./utils/utils";
+import "./App.css";
+import parks from "./data/random_simple_parks.json";
+import { point } from "@turf/helpers";
+
+export const StateDispatch = createContext(null);
+
+const height = 1000;
+const width = 1000;
+
+function reducer(state, action) {
+  if (action.type !== "UPDATE_VIEWPORT") console.log(action);
+  switch (action.type) {
+    case "RANDOMIZE_PARK": {
+      const newPark = parks.features[getRandomInt(0, parks.features.length)];
+      const initBBOX = bbox(newPark);
+      const newViewport = new WebMercatorViewport({
+        width: width,
+        height: height
+      }).fitBounds([[initBBOX[0], initBBOX[1]], [initBBOX[2], initBBOX[3]]], {
+        padding: 20,
+        offset: [0, 0]
+      });
+      const animatedViewport = {
+        ...newViewport,
+        transitionDuration: 5000,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionEasing: easeCubic
+      };
+      return {
+        ...state,
+        park: newPark,
+        parkCentroid: {
+          longitude: newViewport.longitude,
+          latitude: newViewport.latitude
+        },
+        viewport: animatedViewport
+      };
+    }
+    case "UPDATE_VIEWPORT":
+      return { ...state, viewport: { ...state.viewport, ...action.viewport } };
+    case "GO_TO_ME": {
+      const animatedViewport = {
+        ...state.viewport,
+        longitude: action.location[0],
+        latitude: action.location[1],
+        zoom: 17,
+        transitionDuration: 5000,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionEasing: easeCubic
+      };
+      return {
+        ...state,
+        viewport: animatedViewport,
+        routeStart: {
+          latitude: animatedViewport.latitude,
+          longitude: animatedViewport.longitude
+        }
+      };
+    }
+    case "DISPLAY_ROUTE": {
+      const initBBOX = bbox(action.route.routes[0].geometry);
+      const newViewport = new WebMercatorViewport({
+        width: width,
+        height: height
+      }).fitBounds([[initBBOX[0], initBBOX[1]], [initBBOX[2], initBBOX[3]]], {
+        padding: 100,
+        offset: [0, 0]
+      });
+      const animatedViewport = {
+        ...newViewport,
+        transitionDuration: 5000,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionEasing: easeCubic
+      };
+      return {
+        ...state,
+        viewport: animatedViewport,
+        route: action.route
+      };
+    }
+    case "INTERPOLATE_TRIP": {
+      let percentage = state.interpolationProgress + 0.001;
+      if (percentage > 1) {
+        percentage = 0.001;
+      }
+      console.log(percentage);
+      const tripLength = length(state.route.routes[0].geometry);
+      console.log(tripLength);
+      const progress = percentage * tripLength;
+      console.log(progress);
+      const currentPosition = along(state.route.routes[0].geometry, progress);
+      console.log(currentPosition);
+      return {
+        ...state,
+        interpolationProgress: percentage,
+        viewport: {
+          ...state.viewport,
+          longitude: currentPosition.geometry.coordinates[0],
+          latitude: currentPosition.geometry.coordinates[1],
+          transitionDuration: 0,
+          zoom: 7
+        }
+      };
+    }
+    case "TOGGLE_INTERPOLATION":
+      return { ...state, interpolate: !state.interpolate };
+    case "TOGGLE_ROUTING":
+      return { ...state, newRoute: !state.newRoute };
+  }
+}
+const initialPark = 10;
+const initBBOX = bbox(parks.features[initialPark]);
+const initViewport = new WebMercatorViewport({
+  width: width,
+  height: height
+}).fitBounds([[initBBOX[0], initBBOX[1]], [initBBOX[2], initBBOX[3]]], {
+  padding: 20,
+  offset: [0, 0]
+});
+const initialState = {
+  park: parks.features[initialPark],
+  parkCentroid: {
+    longitude: initViewport.longitude,
+    latitude: initViewport.latitude
+  },
+  viewport: initViewport,
+  routeStart: {
+    latitude: null,
+    longitude: null
+  },
+  newRoute: false,
+  route: null,
+  interpolate: false,
+  interpolationProgress: 0.001
+};
 
 function App() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <StateDispatch.Provider value={dispatch}>
+      <div
+        className="App"
+        style={{
+          height: `${height}px`,
+          width: `${width}px`,
+          position: "relative"
+        }}
+      >
+        <button
+          style={{
+            position: "absolute",
+            top: "5px",
+            right: "0px",
+            zIndex: "10"
+          }}
+          onClick={() => dispatch({ type: "RANDOMIZE_PARK" })}
         >
-          Learn React
-        </a>
-      </header>
-    </div>
+          random park
+        </button>
+        <LocationButton state={state} />
+        <DeckMap state={state} />
+      </div>
+    </StateDispatch.Provider>
   );
 }
 
