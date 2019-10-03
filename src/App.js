@@ -13,7 +13,7 @@ import parks from "./data/random_simple_parks.json";
 
 export const StateDispatch = createContext(null);
 
-const height = 1000;
+const height = 800;
 const width = 1000;
 
 function reducer(state, action) {
@@ -42,7 +42,8 @@ function reducer(state, action) {
           longitude: newViewport.longitude,
           latitude: newViewport.latitude
         },
-        viewport: animatedViewport
+        viewport: animatedViewport,
+        interpolationProgress: 0.001
       };
     }
     case "UPDATE_VIEWPORT":
@@ -152,17 +153,6 @@ function App() {
           position: "relative"
         }}
       >
-        <button
-          style={{
-            position: "absolute",
-            top: "5px",
-            right: "0px",
-            zIndex: "10"
-          }}
-          onClick={() => dispatch({ type: "RANDOMIZE_PARK" })}
-        >
-          random park
-        </button>
         <LocationButton state={state} />
         <DeckMap state={state} />
       </div>

@@ -57,6 +57,17 @@ const LocationButton = ({ state }) => {
       <button
         style={{
           position: "absolute",
+          top: "5px",
+          right: "0px",
+          zIndex: "10"
+        }}
+        onClick={() => dispatch({ type: "RANDOMIZE_PARK" })}
+      >
+        random park
+      </button>
+      <button
+        style={{
+          position: "absolute",
           top: "30px",
           right: "0px",
           zIndex: "10"
