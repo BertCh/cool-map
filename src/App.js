@@ -10,7 +10,6 @@ import LocationButton from "./LocationButton";
 import { getRandomInt } from "./utils/utils";
 import "./App.css";
 import parks from "./data/random_simple_parks.json";
-import { point } from "@turf/helpers";
 
 export const StateDispatch = createContext(null);
 
@@ -93,13 +92,9 @@ function reducer(state, action) {
       if (percentage > 1) {
         percentage = 0.001;
       }
-      console.log(percentage);
       const tripLength = length(state.route.routes[0].geometry);
-      console.log(tripLength);
       const progress = percentage * tripLength;
-      console.log(progress);
       const currentPosition = along(state.route.routes[0].geometry, progress);
-      console.log(currentPosition);
       return {
         ...state,
         interpolationProgress: percentage,
