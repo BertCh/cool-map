@@ -29,6 +29,7 @@ const DeckMap = ({ state }) => {
         />
         {routeStart && (
           <ScatterplotLayer
+            id="me"
             data={[
               { coordinates: [routeStart.longitude, routeStart.latitude] }
             ]}

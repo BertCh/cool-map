@@ -19,6 +19,8 @@ const width = 1000;
 function reducer(state, action) {
   if (action.type !== "UPDATE_VIEWPORT") console.log(action);
   switch (action.type) {
+    case "UPDATE_VIEWPORT":
+      return { ...state, viewport: { ...state.viewport, ...action.viewport } };
     case "RANDOMIZE_PARK": {
       const newPark = parks.features[getRandomInt(0, parks.features.length)];
       const initBBOX = bbox(newPark);
@@ -46,8 +48,6 @@ function reducer(state, action) {
         interpolationProgress: 0.001
       };
     }
-    case "UPDATE_VIEWPORT":
-      return { ...state, viewport: { ...state.viewport, ...action.viewport } };
     case "GO_TO_ME": {
       const animatedViewport = {
         ...state.viewport,
@@ -112,9 +112,11 @@ function reducer(state, action) {
       return { ...state, interpolate: !state.interpolate };
     case "TOGGLE_ROUTING":
       return { ...state, newRoute: !state.newRoute };
+    default:
+      throw new Error(`there is no action ${action.type}`);
   }
 }
-const initialPark = 10;
+const initialPark = 0;
 const initBBOX = bbox(parks.features[initialPark]);
 const initViewport = new WebMercatorViewport({
   width: width,
